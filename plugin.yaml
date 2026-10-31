@@ -1,0 +1,18 @@
+name: "rvis"
+version: "0.1.0"
+usage: "visualize the CPU and memory requests and limits of a chart"
+description: |-
+  rvis renders a chart (or reads an installed release) and shows every
+  workload and container with its requests, limits, effective pod footprint,
+  replica-weighted totals, QoS class and configuration findings in an
+  htop-style terminal view.
+
+  Examples:
+    helm rvis ./mychart -f values.yaml
+    helm rvis --release my-app -n prod
+    helm template x ./mychart | helm rvis -o table
+command: "$HELM_PLUGIN_DIR/bin/rvis"
+ignoreFlags: false
+hooks:
+  install: "cd \"$HELM_PLUGIN_DIR\" && sh scripts/install.sh"
+  update: "cd \"$HELM_PLUGIN_DIR\" && sh scripts/install.sh --force"

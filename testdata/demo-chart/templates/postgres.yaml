@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-postgres
+  labels:
+    {{- include "shop.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  serviceName: postgres
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17
+          resources: {{- toYaml .Values.postgres.resources | nindent 12 }}
+        - name: backup-agent
+          image: ghcr.io/acme/pg-backup:1.2
+          resources:
+            requests: { cpu: 50m, memory: 64Mi, ephemeral-storage: 2Gi }
+            limits: { cpu: 200m, memory: 128Mi, ephemeral-storage: 10Gi }

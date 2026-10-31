@@ -1,0 +1,6 @@
+apiVersion: v2
+name: shop
+description: Demo chart used to exercise rvis
+type: application
+version: 1.4.0
+appVersion: "2.3.1"

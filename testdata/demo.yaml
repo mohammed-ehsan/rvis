@@ -1,0 +1,198 @@
+---
+# Source: shop/templates/cron.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: rvis-frontend
+  labels:
+    helm.sh/chart: shop-1.4.0
+    app.kubernetes.io/instance: rvis
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ports: [{ port: 80 }]
+  selector: { app: frontend }
+---
+# Source: shop/templates/node-agent.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: rvis-log-agent
+  labels:
+    helm.sh/chart: shop-1.4.0
+    app.kubernetes.io/instance: rvis
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector: { matchLabels: { app: log-agent } }
+  template:
+    metadata: { labels: { app: log-agent } }
+    spec:
+      containers:
+        - name: fluent-bit
+          image: fluent/fluent-bit:3.2
+          resources:
+            limits: { cpu: 200m, memory: 128Mi }
+---
+# Source: shop/templates/api.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rvis-api
+  labels:
+    helm.sh/chart: shop-1.4.0
+    app.kubernetes.io/instance: rvis
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: api } }
+  template:
+    metadata: { labels: { app: api } }
+    spec:
+      initContainers:
+        - name: migrate
+          image: ghcr.io/acme/shop-api:2.3.1
+          command: ["./migrate"]
+          resources:
+            requests: { cpu: "1", memory: 256Mi }
+            limits: { cpu: "1", memory: 256Mi }
+        - name: istio-proxy
+          image: istio/proxyv2:1.24
+          restartPolicy: Always
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+      containers:
+        - name: api
+          image: ghcr.io/acme/shop-api:2.3.1
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+---
+# Source: shop/templates/frontend.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rvis-frontend
+  labels:
+    helm.sh/chart: shop-1.4.0
+    app.kubernetes.io/instance: rvis
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 3
+  selector: { matchLabels: { app: frontend } }
+  template:
+    metadata: { labels: { app: frontend } }
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+        - name: metrics-exporter
+          image: nginx/nginx-prometheus-exporter:1.3
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 50m, memory: 32Mi }
+---
+# Source: shop/templates/worker.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rvis-worker
+  labels:
+    helm.sh/chart: shop-1.4.0
+    app.kubernetes.io/instance: rvis
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: worker } }
+  template:
+    metadata: { labels: { app: worker } }
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/acme/shop-worker:2.3.1
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+        - name: ml-inference
+          image: ghcr.io/acme/recommender:0.9
+          resources:
+            requests: { cpu: "1", memory: 2Gi, nvidia.com/gpu: 1 }
+            limits: { memory: 3Gi, nvidia.com/gpu: 1 }
+---
+# Source: shop/templates/api.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rvis-api
+  labels:
+    helm.sh/chart: shop-1.4.0
+    app.kubernetes.io/instance: rvis
+    app.kubernetes.io/managed-by: Helm
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: rvis-api }
+  minReplicas: 4
+  maxReplicas: 12
+---
+# Source: shop/templates/postgres.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rvis-postgres
+  labels:
+    helm.sh/chart: shop-1.4.0
+    app.kubernetes.io/instance: rvis
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  serviceName: postgres
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17
+          resources:
+            limits:
+              cpu: "2"
+              memory: 4Gi
+            requests:
+              cpu: "2"
+              memory: 4Gi
+        - name: backup-agent
+          image: ghcr.io/acme/pg-backup:1.2
+          resources:
+            requests: { cpu: 50m, memory: 64Mi, ephemeral-storage: 2Gi }
+            limits: { cpu: 200m, memory: 128Mi, ephemeral-storage: 10Gi }
+---
+# Source: shop/templates/cron.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rvis-report
+  labels:
+    helm.sh/chart: shop-1.4.0
+    app.kubernetes.io/instance: rvis
+    app.kubernetes.io/managed-by: Helm
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      parallelism: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: report
+              image: ghcr.io/acme/shop-report:2.3.1

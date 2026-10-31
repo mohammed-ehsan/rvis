@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-api
+  labels:
+    {{- include "shop.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector: { matchLabels: { app: api } }
+  template:
+    metadata: { labels: { app: api } }
+    spec:
+      initContainers:
+        - name: migrate
+          image: ghcr.io/acme/shop-api:2.3.1
+          command: ["./migrate"]
+          resources:
+            requests: { cpu: "1", memory: 256Mi }
+            limits: { cpu: "1", memory: 256Mi }
+        - name: istio-proxy
+          image: istio/proxyv2:1.24
+          restartPolicy: Always
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+      containers:
+        - name: api
+          image: ghcr.io/acme/shop-api:2.3.1
+          resources: {{- toYaml .Values.api.resources | nindent 12 }}
+{{- if .Values.api.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Release.Name }}-api
+  labels:
+    {{- include "shop.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: {{ .Release.Name }}-api }
+  minReplicas: {{ .Values.api.autoscaling.min }}
+  maxReplicas: {{ .Values.api.autoscaling.max }}
+{{- end }}

@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Release.Name }}-log-agent
+  labels:
+    {{- include "shop.labels" . | nindent 4 }}
+spec:
+  selector: { matchLabels: { app: log-agent } }
+  template:
+    metadata: { labels: { app: log-agent } }
+    spec:
+      containers:
+        - name: fluent-bit
+          image: fluent/fluent-bit:3.2
+          resources:
+            limits: { cpu: 200m, memory: 128Mi }

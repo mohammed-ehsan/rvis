@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # The install hook downloads the release named after plugin.yaml's
+      # version, so the tag must match it.
+      - name: Check plugin.yaml version matches the tag
+        run: |
+          want="${GITHUB_REF_NAME#v}"
+          got="$(sed -n 's/^version: *"\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' plugin.yaml)"
+          if [ "$want" != "$got" ]; then
+            echo "plugin.yaml version is $got but the tag is $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

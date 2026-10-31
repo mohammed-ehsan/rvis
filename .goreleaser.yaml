@@ -1,0 +1,13 @@
+version: 2
+project_name: rvis
+builds:
+  - env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X github.com/mohammed-ehsan/rvis/cmd.Version={{ .Version }}"]
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files: [README.md, LICENSE, plugin.yaml, scripts/install.sh]
+checksum:
+  name_template: checksums.txt

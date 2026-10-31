@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-worker
+  labels:
+    {{- include "shop.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector: { matchLabels: { app: worker } }
+  template:
+    metadata: { labels: { app: worker } }
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/acme/shop-worker:2.3.1
+          resources: {{- toYaml .Values.worker.resources | nindent 12 }}
+        - name: ml-inference
+          image: ghcr.io/acme/recommender:0.9
+          resources:
+            requests: { cpu: "1", memory: 2Gi, nvidia.com/gpu: 1 }
+            limits: { memory: 3Gi, nvidia.com/gpu: 1 }
