@@ -1,5 +1,5 @@
 name: "rvis"
-version: "0.1.0"
+version: "1.0.0"
 usage: "visualize the CPU and memory requests and limits of a chart"
 description: |-
   rvis renders a chart (or reads an installed release) and shows every

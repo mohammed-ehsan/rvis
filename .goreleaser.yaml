@@ -2,7 +2,7 @@ version: 2
 project_name: rvis
 builds:
   - env: [CGO_ENABLED=0]
-    goos: [linux, darwin, windows]
+    goos: [linux, darwin]
     goarch: [amd64, arm64]
     flags: [-trimpath]
     ldflags: ["-s -w -X github.com/mohammed-ehsan/rvis/cmd.Version={{ .Version }}"]
