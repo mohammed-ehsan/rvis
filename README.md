@@ -7,24 +7,7 @@
 
 Point it at a chart and it renders the manifests. For every workload and container it shows requests, limits and replicas, plus the effective size of each pod and the totals for the whole chart, before anything is deployed. When you change a value, rvis writes it back to the exact line of the chart where it is defined.
 
-```
- CPU[|||||||||||||||||req 9.58+ / lim 10.05+ of 16 cores ]   Chart: shop-1.4.0 (./shop)
- Mem[||||||||||||||||||req 13.1Gi+ / lim 16.1Gi+ of 32Gi ]   Workloads: 6, 13 pods, 11 containers
-                                                             QoS: 1 guaranteed, 4 burstable, 1 best-effort
-                                                             Issues: 0 errors, 4 warnings
-
- KIND    NAME                      PODS QOS  CPU REQ▼  CPU LIM  MEM REQ  MEM LIM CPU                MEMORY
- deploy  shop-api                    4↑ Bur         4        6    2.5Gi      5Gi [|||||||||||:::::] [|||||||::::::   ]
-          ├─ migrate init                           4        4      1Gi      1Gi [|||||||||||     ] [|||             ]
-          ├─ api                                    1        4      2Gi      4Gi [|||::::::::     ] [|||||::::::     ]
-          └─ istio-proxy sidecar                 400m        2    512Mi      1Gi [|::::           ] [|::             ]
- deploy  shop-worker                  2 Bur         3        ∞      6Gi     6Gi+ [||||||||       »] [|||||||||||||||»]
- sts     shop-postgres                1 Bur      2.05      2.2    4.1Gi    4.1Gi [|||||:          ] [|||||||||||     ]
- ds      shop-log-agent             1ds Gua      200m     200m    128Mi    128Mi [|               ] [|               ]
-──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- TOTAL                               13         9.58+   10.05+  13.1Gi+  16.1Gi+               | req : lim » unbounded
-F1Help   F2PerPod F3Filter F4Issues F5Flat   F6SortBy F7Edit   F8QEdit  F10Quit                              1/17
-```
+![](docs/screenshot01.png)
 
 ## Features
 
